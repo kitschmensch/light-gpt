@@ -1,6 +1,6 @@
 # Light-GPT
 
-Light-GPT is a Go application that handles incoming webhook responses and processes messages. It uses environment variables for configuration and can be built and run from source.
+Use your self-hosted AI model with your dumbphone: Light-GPT is a simple relay application that accepts SMS webhooks from [Sinch SMS API](https://sinch.com/apis/messaging/sms/) and forwards them to an Ollama server. The software is intended to run on your local network, and will require port forwarding to work. Full conversation context is maintained and can be cleared by texting "1".
 
 ## Features
 
@@ -12,6 +12,8 @@ Light-GPT is a Go application that handles incoming webhook responses and proces
 
 - Go 1.16 or later
 - Git
+- Port forwarding set up on your local network
+- A sinch accoung, with the default callback url set to http://[your public IP address]:[some random port]
 
 ## Installation
 
