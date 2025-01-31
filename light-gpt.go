@@ -33,57 +33,9 @@ func main() {
 
 	//Handles incoming webhook responses. URL is the set in the Sinch dashboard.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Unable to read body", http.StatusBadRequest)
-			return
-		}
-
-		data := make(map[string]interface{})
-		if err := json.Unmarshal(body, &data); err != nil {
-			http.Error(w, "Unable to parse JSON", http.StatusBadRequest)
-			return
-		}
-		phoneNumber, ok := data["from"].(string)
-		if !ok || !isValidPhoneNumber(phoneNumber) {
-			http.Error(w, "Invalid phone number", http.StatusBadRequest)
-			return
-		}
-
-		message, ok := data["body"].(string)
-		if !ok {
-			http.Error(w, "Invalid message", http.StatusBadRequest)
-			return
-		}
-
-		//Command to clear the chat.
-		if message == "1" {
-			//Todo: save the chat to a file
-			currentChat = []Message{}
-			fmt.Println("Chat cleared")
-			sendSMS("Chat cleared.", phoneNumber)
-			return
-		}
-
-		timestamp, ok := data["received_at"].(string)
-		if !ok {
-			http.Error(w, "Invalid timestamp", http.StatusBadRequest)
-			return
-		}
-
-		addMessage("user", message, timestamp)
-		body, err = buildBody()
-		if err != nil {
-			http.Error(w, "Error building request body", http.StatusInternalServerError)
-			return
-		}
-		aiResponse, err := chatCompletion(body)
-		if err != nil {
-			http.Error(w, "Error getting AI response", http.StatusInternalServerError)
-			return
-		}
-		addMessage("assistant", aiResponse.Content, aiResponse.Timestamp)
-		sendSMS(aiResponse.Content+"\n\n[1] Clear Chat", phoneNumber)
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, "Resource created")
+		handleWebhook(r)
 	})
 
 	log.Printf("Starting server on port %s", port)
@@ -105,6 +57,60 @@ func isValidPhoneNumber(phoneNumber string) bool {
 		}
 	}
 	return false
+}
+
+func handleWebhook(r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println("Unable to read body")
+		return
+	}
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(body, &data); err != nil {
+		fmt.Println("Unable to parse JSON")
+		return
+	}
+	phoneNumber, ok := data["from"].(string)
+	if !ok || !isValidPhoneNumber(phoneNumber) {
+		fmt.Println("Invalid phone number")
+		return
+	}
+
+	message, ok := data["body"].(string)
+	if !ok {
+		fmt.Println("Invalid message")
+		return
+	}
+
+	//Command to clear the chat.
+	if message == "1" {
+		//Todo: save the chat to a file
+		currentChat = []Message{}
+		fmt.Println("Chat cleared")
+		sendSMS("Chat cleared.", phoneNumber)
+		return
+	}
+
+	timestamp, ok := data["received_at"].(string)
+	if !ok {
+		fmt.Println("Invalid timestamp")
+		return
+	}
+
+	addMessage("user", message, timestamp)
+	body, err = buildBody()
+	if err != nil {
+		fmt.Println("Error building request body")
+		return
+	}
+	aiResponse, err := chatCompletion(body)
+	if err != nil {
+		fmt.Println("Error getting AI response")
+		return
+	}
+	addMessage("assistant", aiResponse.Content, aiResponse.Timestamp)
+	sendSMS(aiResponse.Content+"\n\n[1] Clear Chat", phoneNumber)
 }
 
 var currentChat = []Message{}
