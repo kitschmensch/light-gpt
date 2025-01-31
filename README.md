@@ -2,6 +2,8 @@
 
 Use your self-hosted AI model with your dumbphone: Light-GPT is a simple relay application that accepts SMS webhooks from [Sinch SMS API](https://sinch.com/apis/messaging/sms/) and forwards them to an Ollama server. The software is intended to run on your local network, and will require port forwarding to work. Full conversation context is maintained and can be cleared by texting "1".
 
+Project is a simple proof of concept. Suggestions and comments are welcome.
+
 ## Features
 
 - Handles incoming webhook responses.
