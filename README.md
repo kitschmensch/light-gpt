@@ -13,7 +13,7 @@ Use your self-hosted AI model with your dumbphone: Light-GPT is a simple relay a
 - Go 1.16 or later
 - Git
 - Port forwarding set up on your local network
-- A sinch accoung, with the default callback url set to http://[your public IP address]:[some random port]
+- A Sunch developer account, with the default callback url set to http://[your public IP address]:[some random port]
 
 ## Installation
 
