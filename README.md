@@ -35,7 +35,7 @@ Create a .env file in the root directory of the project with the following conte
 # Ollama API endpoint (default local instance)
 OLLAMA_URL=http://192.168.1.123:11434
 
-# Sinch API credentials (if needed for sending SMS, not implemented in code)
+# Sinch API credentials
 SINCH_API_KEY=key
 SINCH_PLAN_ID=plan
 SINCH_SENDER_NUMBER=18005551234

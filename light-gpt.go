@@ -85,7 +85,20 @@ func handleWebhook(r *http.Request) {
 
 	//Command to clear the chat.
 	if message == "1" {
-		//Todo: save the chat to a file
+		success, err := saveChatToFile()
+		if success {
+			currentChat = []Message{}
+			fmt.Println("Chat saved and cleared.")
+			sendSMS("Chat cleared.", phoneNumber)
+		} else {
+			fmt.Println("Error saving chat:", err)
+			sendSMS("Error saving chat: "+err.Error(), phoneNumber)
+		}
+		return
+	}
+
+	//Clear without saving
+	if message == "2" {
 		currentChat = []Message{}
 		fmt.Println("Chat cleared")
 		sendSMS("Chat cleared.", phoneNumber)
@@ -110,7 +123,7 @@ func handleWebhook(r *http.Request) {
 		return
 	}
 	addMessage("assistant", aiResponse.Content, aiResponse.Timestamp)
-	sendSMS(aiResponse.Content+"\n\n[1] Clear Chat", phoneNumber)
+	sendSMS(aiResponse.Content+"\n\n[1] Save chat and clear\n\n[2] Clear chat without saving", phoneNumber)
 }
 
 var currentChat = []Message{}
@@ -263,4 +276,30 @@ func sendSMS(message string, to_number string) (int, error) {
 	}
 
 	return 201, nil
+}
+
+func saveChatToFile() (bool, error) {
+	if len(currentChat) == 0 {
+		fmt.Println("No chat history to save")
+		return false, fmt.Errorf("no chat history to save")
+	}
+
+	firstMessage := currentChat[0]
+	filename := fmt.Sprintf("%s_%s.txt", firstMessage.Timestamp[:10], strings.ReplaceAll(firstMessage.Content, " ", "_"))
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Println("Unable to create file:", err)
+		return false, fmt.Errorf("unable to create file: %s", err)
+	}
+	defer file.Close()
+
+	for _, msg := range currentChat {
+		line := fmt.Sprintf("%s | %s\n%s\n\n", msg.Timestamp, msg.Role, msg.Content)
+		if _, err := file.WriteString(line); err != nil {
+			fmt.Println("Unable to write to file:", err)
+			return false, fmt.Errorf("unable to write to file: %s", err)
+		}
+	}
+	fmt.Println("Chat history saved to chat_history.txt")
+	return true, nil
 }
