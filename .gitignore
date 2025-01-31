@@ -1,0 +1,10 @@
+# Don't upload the compiled binary
+light-gpt
+
+# Go modules
+go.mod
+go.sum
+
+
+# Environment variables file
+.env
