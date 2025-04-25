@@ -56,11 +56,11 @@ TWILIO_BASE_URL=https://api.twilio.com/2010-04-01
 4. Build the binary
 `go build ./cmd -o light-gpt`
 
-4. Build the binary for x86 (32-bit or 64-bit):
+4. Build the binary:
    - Default
      ```ssh
      go build ./cmd -o light-gpt
-     111
+     ```
 
    - For 32-bit x86:
      ```sh
@@ -88,7 +88,6 @@ TWILIO_BASE_URL=https://api.twilio.com/2010-04-01
 ## Planned features:
 - Weather command
 - A command to switch instructions (say, if you want more verbose responses)
-- 
 
 # License
 This project is licensed under the MIT License. See the LICENSE file for details.
