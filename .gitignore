@@ -1,5 +1,6 @@
 # Don't upload the compiled binary
 light-gpt
+main
 
 # Go modules
 go.mod
