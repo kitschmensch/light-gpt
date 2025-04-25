@@ -30,13 +30,11 @@ func main() {
 
 	appState := state.NewAppState(cfg)
 
-	// Initialize Twilio client
 	twilioClient := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: cfg.TwilioAccountSID,
 		Password: cfg.TwilioAuthToken,
 	})
 
-	// Pass the Twilio client to the server
 	srv := server.NewServer(cfg, appState, log, twilioClient)
 	log.Infof("Starting server on port %s", cfg.Port)
 	if err := srv.Start(); err != nil {

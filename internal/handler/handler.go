@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	state "light-gpt/internal/app_state"
 	"light-gpt/internal/config"
@@ -27,25 +28,20 @@ func WebhookHandler(cfg *config.Config, appState *state.AppState, log *logger.Lo
 }
 
 func handleWebhook(cfg *config.Config, s *state.AppState, w http.ResponseWriter, r *http.Request, log *logger.Logger, twilioClient *twilio.RestClient) {
-	// Parse the form data from the Twilio webhook
 	if err := r.ParseForm(); err != nil {
 		log.Errorf("Unable to parse form data: %v", err)
 		http.Error(w, "Unable to parse form data", http.StatusBadRequest)
 		return
 	}
 
-	// Extract data from the form
 	data := make(map[string]string)
 	for key, values := range r.Form {
 		if len(values) > 0 {
 			data[key] = values[0]
 		}
 	}
-
-	// Log the received data for debugging
 	log.Infof("Received Twilio webhook data: %v", data)
 
-	// Extract required fields
 	phoneNumber := data["From"]
 	message := data["Body"]
 
@@ -57,33 +53,26 @@ func handleWebhook(cfg *config.Config, s *state.AppState, w http.ResponseWriter,
 		return
 	}
 
-	// Handle the message
-	if message == "1" {
-		filename, err := saveChatToFile(s)
-		if err != nil {
-			log.Errorf("Error saving chat: %v", err)
-			sendSMS(cfg, twilioClient, "Error saving chat: "+err.Error(), phoneNumber)
-			return
+	// Check if the message matches a command
+	if command, exists := Commands[strings.ToLower(message)]; exists {
+		ctx := &CommandContext{
+			Config:       cfg,
+			AppState:     s,
+			Logger:       log,
+			TwilioClient: twilioClient,
+			PhoneNumber:  phoneNumber,
 		}
-
-		s.ClearChat()
-		log.Infof("Chat saved as %v and cleared.", filename)
-		sendSMS(cfg, twilioClient, "Chat cleared.", phoneNumber)
+		command.Handler(ctx)
 		return
 	}
 
-	if message == "2" {
-		s.ClearChat()
-		log.Info("Chat cleared.")
-		sendSMS(cfg, twilioClient, "Chat cleared.", phoneNumber)
-		return
-	}
+	handleDefaultMessage(cfg, s, log, twilioClient, phoneNumber, message)
+}
 
-	// Add the message to the chat history
-	timestamp := data["ApiVersion"] // Twilio does not provide a timestamp, so use a placeholder
+func handleDefaultMessage(cfg *config.Config, s *state.AppState, log *logger.Logger, twilioClient *twilio.RestClient, phoneNumber, message string) {
+	timestamp := time.Now().UTC().Format(time.RFC3339)
 	s.AddMessage("user", message, timestamp)
 
-	// Build the request body for the AI model
 	body, err := buildBody(cfg, s)
 	if err != nil {
 		log.Errorf("Error building request body: %v", err)
@@ -93,7 +82,6 @@ func handleWebhook(cfg *config.Config, s *state.AppState, w http.ResponseWriter,
 	// Send the chat to the AI model
 	log.Infof("User message: %v", message)
 	log.Info("Sending chat to AI model")
-	log.Infof("Request body: %s", string(body))
 	aiResponse, err := chatCompletion(cfg, body)
 	if err != nil {
 		log.Errorf("Error getting AI response: %v", err)
@@ -105,7 +93,7 @@ func handleWebhook(cfg *config.Config, s *state.AppState, w http.ResponseWriter,
 	s.AddMessage("assistant", aiResponse.Content, aiResponse.Timestamp)
 
 	// Send the AI response back to the user
-	_, err = sendSMS(cfg, twilioClient, aiResponse.Content+"\n\n[1] Save chat and clear\n\n[2] Clear chat without saving", phoneNumber)
+	_, err = sendSMS(cfg, twilioClient, aiResponse.Content, phoneNumber)
 	if err != nil {
 		log.Errorf("Error sending SMS: %v", err)
 		return
@@ -116,6 +104,14 @@ func buildBody(cfg *config.Config, s *state.AppState) ([]byte, error) {
 	messages := make([]map[string]string, len(s.CurrentChat))
 
 	for i, msg := range s.CurrentChat {
+		if i == 0 {
+			messages[i] = map[string]string{
+				"role":    msg.Role,
+				"content": cfg.OllamaInstructions + msg.Content,
+			}
+			continue
+		}
+
 		messages[i] = map[string]string{
 			"role":    msg.Role,
 			"content": msg.Content,

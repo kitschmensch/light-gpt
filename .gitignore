@@ -2,6 +2,8 @@
 light-gpt
 main
 
+app.log
+
 # Go modules
 go.mod
 go.sum
